@@ -46,9 +46,6 @@
 import { collection, getDocs, query, orderBy, limit, where } from "firebase/firestore";
 import { db } from "../plugins/firebase.client";
 
-const posts = ref<any[]>([]);
-const pending = ref(true);
-
 function fmtDate(val: any) {
   try {
     const d = val?.toDate ? val.toDate() : new Date(val);
@@ -57,7 +54,7 @@ function fmtDate(val: any) {
   } catch { return ""; }
 }
 
-onMounted(async () => {
+const { data: posts, pending } = await useAsyncData("posts", async () => {
   const q = query(
     collection(db, "blogposts"),
     where("status", "==", "published"),
@@ -65,8 +62,16 @@ onMounted(async () => {
     limit(50)
   );
   const snap = await getDocs(q);
-  posts.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  pending.value = false;
+  return snap.docs.map(d => {
+    const data = d.data();
+    return {
+      id: d.id,
+      title: data.title || "",
+      mainImage: data.mainImage || data.mainImageUrl || "",
+      tags: data.tags || [],
+      publishedAt: data.publishedAt?.toDate?.().toISOString() || "",
+    };
+  });
 });
 </script>
 
