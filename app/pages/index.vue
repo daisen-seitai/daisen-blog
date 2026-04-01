@@ -43,35 +43,69 @@
 </template>
 
 <script setup lang="ts">
-import { collection, getDocs, query, orderBy, limit, where } from "firebase/firestore";
-import { db } from "../plugins/firebase.client";
+const PROJECT_ID = "daisen-seitai-blog";
 
-function fmtDate(val: any) {
+function fmtDate(val: string) {
+  if (!val) return "";
   try {
-    const d = val?.toDate ? val.toDate() : new Date(val);
-    if (isNaN(d)) return "";
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return "";
     return d.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
   } catch { return ""; }
 }
 
+function extractValue(field: any): any {
+  if (!field) return null;
+  if (field.stringValue !== undefined) return field.stringValue;
+  if (field.integerValue !== undefined) return Number(field.integerValue);
+  if (field.booleanValue !== undefined) return field.booleanValue;
+  if (field.timestampValue !== undefined) return field.timestampValue;
+  if (field.arrayValue !== undefined) return (field.arrayValue.values || []).map(extractValue);
+  if (field.mapValue !== undefined) return extractFields(field.mapValue.fields || {});
+  return null;
+}
+
+function extractFields(fields: any) {
+  const result: any = {};
+  for (const key in fields) result[key] = extractValue(fields[key]);
+  return result;
+}
+
 const { data: posts, pending } = await useAsyncData("posts", async () => {
-  const q = query(
-    collection(db, "blogposts"),
-    where("status", "==", "published"),
-    orderBy("publishedAt", "desc"),
-    limit(50)
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map(d => {
-    const data = d.data();
-    return {
-      id: d.id,
-      title: data.title || "",
-      mainImage: data.mainImage || data.mainImageUrl || "",
-      tags: data.tags || [],
-      publishedAt: data.publishedAt?.toDate?.().toISOString() || "",
-    };
+  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents:runQuery`;
+  const body = {
+    structuredQuery: {
+      from: [{ collectionId: "blogposts" }],
+      where: {
+        fieldFilter: {
+          field: { fieldPath: "status" },
+          op: "EQUAL",
+          value: { stringValue: "published" }
+        }
+      },
+      orderBy: [{ field: { fieldPath: "publishedAt" }, direction: "DESCENDING" }],
+      limit: 50
+    }
+  };
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
   });
+  const data = await res.json();
+  return data
+    .filter((item: any) => item.document)
+    .map((item: any) => {
+      const f = extractFields(item.document.fields || {});
+      const id = item.document.name.split("/").pop();
+      return {
+        id,
+        title: f.title || "",
+        mainImage: f.mainImage || f.mainImageUrl || "",
+        tags: Array.isArray(f.tags) ? f.tags : [],
+        publishedAt: f.publishedAt || "",
+      };
+    });
 });
 </script>
 

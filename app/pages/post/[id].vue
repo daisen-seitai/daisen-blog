@@ -33,28 +33,47 @@
 </template>
 
 <script setup lang="ts">
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../../plugins/firebase.client";
+const PROJECT_ID = "daisen-seitai-blog";
+
+function extractValue(field: any): any {
+  if (!field) return null;
+  if (field.stringValue !== undefined) return field.stringValue;
+  if (field.integerValue !== undefined) return Number(field.integerValue);
+  if (field.booleanValue !== undefined) return field.booleanValue;
+  if (field.timestampValue !== undefined) return field.timestampValue;
+  if (field.arrayValue !== undefined) return (field.arrayValue.values || []).map(extractValue);
+  if (field.mapValue !== undefined) return extractFields(field.mapValue.fields || {});
+  return null;
+}
+
+function extractFields(fields: any) {
+  const result: any = {};
+  for (const key in fields) result[key] = extractValue(fields[key]);
+  return result;
+}
 
 const route = useRoute();
 const id = route.params.id as string;
 const error = ref(false);
 
 const { data: post, pending } = await useAsyncData(`post-${id}`, async () => {
-  const snap = await getDoc(doc(db, "blogposts", id));
-  if (!snap.exists()) { error.value = true; return null; }
-  const p = snap.data();
+  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/blogposts/${id}`;
+  const res = await fetch(url);
+  if (!res.ok) { error.value = true; return null; }
+  const data = await res.json();
+  if (!data.fields) { error.value = true; return null; }
+  const f = extractFields(data.fields);
   return {
-    id: snap.id,
-    title: p.title || "",
-    content: p.content || "",
-    mainImage: p.mainImage || p.mainImageUrl || "",
-    tags: p.tags || [],
-    publishedAt: p.publishedAt?.toDate?.().toISOString() || "",
+    id,
+    title: f.title || "",
+    content: f.content || "",
+    mainImage: f.mainImage || f.mainImageUrl || "",
+    tags: Array.isArray(f.tags) ? f.tags : [],
+    publishedAt: f.publishedAt || "",
   };
 });
 
-function fmtDate(val: any) {
+function fmtDate(val: string) {
   if (!val) return "";
   try {
     const d = new Date(val);
