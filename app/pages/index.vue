@@ -16,37 +16,37 @@
       </div>
     </header>
 
-    <!-- 読み込み中 -->
-    <div v-if="pending" class="container">
-      <div class="skeleton-featured"></div>
-      <div class="grid">
-        <div v-for="i in 6" :key="i" class="skeleton-card">
-          <div class="skeleton-img"></div>
-          <div class="skeleton-body">
-            <div class="skeleton-line w60"></div>
-            <div class="skeleton-line w100"></div>
-            <div class="skeleton-line w80"></div>
+    <div class="container">
+      <!-- 読み込み中 -->
+      <template v-if="pending">
+        <div class="skeleton-featured"></div>
+        <div class="grid">
+          <div v-for="i in 6" :key="i" class="skeleton-card">
+            <div class="skeleton-img"></div>
+            <div class="skeleton-body">
+              <div class="skeleton-line w60"></div>
+              <div class="skeleton-line w100"></div>
+              <div class="skeleton-line w80"></div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+      </template>
 
-    <ClientOnly>
-      <div class="container">
+      <template v-else>
         <!-- 注目記事 -->
-        <section v-if="posts.length > 0" class="featured">
-          <NuxtLink :to="`/post/${posts[0].id}`" class="featured-link">
+        <section v-if="displayPosts.length > 0" class="featured">
+          <NuxtLink :to="`/post/${displayPosts[0].id}`" class="featured-link">
             <div class="featured-img-wrap">
-              <img v-if="posts[0].mainImage" :src="posts[0].mainImage"
-                :alt="posts[0].title" class="featured-img">
+              <img v-if="displayPosts[0].mainImage" :src="displayPosts[0].mainImage"
+                :alt="displayPosts[0].title" class="featured-img">
               <div v-else class="featured-img-placeholder"></div>
               <div class="featured-badge">最新記事</div>
             </div>
             <div class="featured-body">
-              <time class="featured-date">{{ fmtDate(posts[0].publishedAt) }}</time>
-              <h2 class="featured-title">{{ posts[0].title }}</h2>
+              <time class="featured-date">{{ fmtDate(displayPosts[0].publishedAt) }}</time>
+              <h2 class="featured-title">{{ displayPosts[0].title }}</h2>
               <div class="featured-tags">
-                <span v-for="tag in posts[0].tags" :key="tag" class="tag">#{{ tag }}</span>
+                <span v-for="tag in displayPosts[0].tags" :key="tag" class="tag">#{{ tag }}</span>
               </div>
               <span class="featured-read">続きを読む →</span>
             </div>
@@ -56,7 +56,7 @@
         <!-- 記事一覧 -->
         <h3 class="section-title">すべての記事</h3>
         <div class="grid">
-          <article v-for="post in posts.slice(1)" :key="post.id" class="card">
+          <article v-for="post in displayPosts.slice(1)" :key="post.id" class="card">
             <NuxtLink :to="`/post/${post.id}`">
               <div class="card-img-wrap">
                 <img v-if="post.mainImage" :src="post.mainImage" :alt="post.title"
@@ -82,8 +82,8 @@
           </button>
           <p v-else class="no-more">すべての記事を表示しました</p>
         </div>
-      </div>
-    </ClientOnly>
+      </template>
+    </div>
 
     <!-- フッター -->
     <footer class="footer">
@@ -165,18 +165,23 @@ async function fetchPosts(startAfter?: string) {
     });
 }
 
-const posts = ref<any[]>([]);
 const hasMore = ref(true);
 const loadingMore = ref(false);
 const lastPublishedAt = ref<string | undefined>(undefined);
+const extraPosts = ref<any[]>([]);
 
-const { pending } = await useAsyncData("posts", async () => {
+const { data: initialPosts, pending } = await useAsyncData("posts", async () => {
   const result = await fetchPosts();
   hasMore.value = result.length > PAGE_SIZE;
-  posts.value = result.slice(0, PAGE_SIZE);
-  lastPublishedAt.value = posts.value[posts.value.length - 1]?.publishedAt;
-  return true;
+  const sliced = result.slice(0, PAGE_SIZE);
+  lastPublishedAt.value = sliced[sliced.length - 1]?.publishedAt;
+  return sliced;
 });
+
+const displayPosts = computed(() => [
+  ...(initialPosts.value || []),
+  ...extraPosts.value
+]);
 
 async function loadMore() {
   if (loadingMore.value || !hasMore.value) return;
@@ -185,7 +190,7 @@ async function loadMore() {
     const result = await fetchPosts(lastPublishedAt.value);
     hasMore.value = result.length > PAGE_SIZE;
     const newPosts = result.slice(0, PAGE_SIZE);
-    posts.value = [...posts.value, ...newPosts];
+    extraPosts.value = [...extraPosts.value, ...newPosts];
     lastPublishedAt.value = newPosts[newPosts.length - 1]?.publishedAt;
   } finally {
     loadingMore.value = false;
