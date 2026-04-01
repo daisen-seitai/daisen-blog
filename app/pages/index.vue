@@ -9,9 +9,9 @@
           だいせん整体ブログ
         </a>
         <nav class="nav">
-         <a href="https://daisen-seitai.com/" class="nav-link" target="_blank">ホームページ</a>
-         <a href="/" class="nav-link">ブログ一覧</a>
-         <a href="/search" class="nav-link">検索</a>
+          <a href="https://daisen-seitai.com/" class="nav-link" target="_blank">ホームページ</a>
+          <a href="/" class="nav-link">ブログ一覧</a>
+          <a href="/search" class="nav-link">検索</a>
         </nav>
       </div>
     </header>
@@ -31,59 +31,59 @@
       </div>
     </div>
 
-    <div v-else class="container">
-
-      <!-- 注目記事（最新1件を大きく表示） -->
-      <section v-if="posts.length > 0" class="featured">
-        <NuxtLink :to="`/post/${posts[0].id}`" class="featured-link">
-          <div class="featured-img-wrap">
-            <img v-if="posts[0].mainImage" :src="posts[0].mainImage"
-              :alt="posts[0].title" class="featured-img">
-            <div v-else class="featured-img-placeholder"></div>
-            <div class="featured-badge">最新記事</div>
-          </div>
-          <div class="featured-body">
-            <time class="featured-date">{{ fmtDate(posts[0].publishedAt) }}</time>
-            <h2 class="featured-title">{{ posts[0].title }}</h2>
-            <div class="featured-tags">
-              <span v-for="tag in posts[0].tags" :key="tag" class="tag">#{{ tag }}</span>
+    <ClientOnly>
+      <div class="container">
+        <!-- 注目記事 -->
+        <section v-if="posts.length > 0" class="featured">
+          <NuxtLink :to="`/post/${posts[0].id}`" class="featured-link">
+            <div class="featured-img-wrap">
+              <img v-if="posts[0].mainImage" :src="posts[0].mainImage"
+                :alt="posts[0].title" class="featured-img">
+              <div v-else class="featured-img-placeholder"></div>
+              <div class="featured-badge">最新記事</div>
             </div>
-            <span class="featured-read">続きを読む →</span>
-          </div>
-        </NuxtLink>
-      </section>
-
-      <!-- 記事一覧 -->
-      <h3 class="section-title">すべての記事</h3>
-      <div class="grid">
-        <article v-for="post in posts.slice(1)" :key="post.id" class="card">
-          <NuxtLink :to="`/post/${post.id}`">
-            <div class="card-img-wrap">
-              <img v-if="post.mainImage" :src="post.mainImage" :alt="post.title"
-                class="card-img" loading="lazy" decoding="async">
-              <div v-else class="card-img-placeholder"></div>
-            </div>
-            <div class="card-body">
-              <time class="card-date">{{ fmtDate(post.publishedAt) }}</time>
-              <h2 class="card-title">{{ post.title }}</h2>
-              <div class="card-tags">
-                <span v-for="tag in post.tags" :key="tag" class="tag">#{{ tag }}</span>
+            <div class="featured-body">
+              <time class="featured-date">{{ fmtDate(posts[0].publishedAt) }}</time>
+              <h2 class="featured-title">{{ posts[0].title }}</h2>
+              <div class="featured-tags">
+                <span v-for="tag in posts[0].tags" :key="tag" class="tag">#{{ tag }}</span>
               </div>
+              <span class="featured-read">続きを読む →</span>
             </div>
           </NuxtLink>
-        </article>
-      </div>
+        </section>
 
-      <!-- もっと見るボタン -->
-      <div class="load-more-wrap">
-        <button v-if="hasMore" class="load-more-btn"
-          :disabled="loadingMore" @click="loadMore">
-          {{ loadingMore ? "読み込み中..." : "もっと見る" }}
-        </button>
-        <p v-else class="no-more">すべての記事を表示しました</p>
-      </div>
+        <!-- 記事一覧 -->
+        <h3 class="section-title">すべての記事</h3>
+        <div class="grid">
+          <article v-for="post in posts.slice(1)" :key="post.id" class="card">
+            <NuxtLink :to="`/post/${post.id}`">
+              <div class="card-img-wrap">
+                <img v-if="post.mainImage" :src="post.mainImage" :alt="post.title"
+                  class="card-img" loading="lazy" decoding="async">
+                <div v-else class="card-img-placeholder"></div>
+              </div>
+              <div class="card-body">
+                <time class="card-date">{{ fmtDate(post.publishedAt) }}</time>
+                <h2 class="card-title">{{ post.title }}</h2>
+                <div class="card-tags">
+                  <span v-for="tag in post.tags" :key="tag" class="tag">#{{ tag }}</span>
+                </div>
+              </div>
+            </NuxtLink>
+          </article>
+        </div>
 
-    </div>
+        <!-- もっと見るボタン -->
+        <div class="load-more-wrap">
+          <button v-if="hasMore" class="load-more-btn"
+            :disabled="loadingMore" @click="loadMore">
+            {{ loadingMore ? "読み込み中..." : "もっと見る" }}
+          </button>
+          <p v-else class="no-more">すべての記事を表示しました</p>
+        </div>
+      </div>
+    </ClientOnly>
 
     <!-- フッター -->
     <footer class="footer">

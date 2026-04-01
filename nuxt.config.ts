@@ -3,5 +3,6 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   routeRules: {
     '/admin': { ssr: false },
+    '/': { ssr: false },  // ← 追加
   }
 })
