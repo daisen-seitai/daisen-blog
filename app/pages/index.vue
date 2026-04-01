@@ -1,47 +1,95 @@
 <template>
   <div class="page">
-    <h1>だいせん整体ブログ</h1>
+
+    <!-- ヘッダー -->
+    <header class="header">
+      <div class="header-inner">
+        <a href="/" class="site-title">
+          <span class="site-icon">🌿</span>
+          だいせん整体ブログ
+        </a>
+        <nav class="nav">
+         <a href="https://daisen-seitai.com/" class="nav-link" target="_blank">ホームページ</a>
+         <a href="/" class="nav-link">ブログ一覧</a>
+         <a href="/search" class="nav-link">検索</a>
+        </nav>
+      </div>
+    </header>
 
     <!-- 読み込み中 -->
-    <div v-if="pending" class="grid">
-      <div v-for="i in 9" :key="i" class="skeleton-card">
-        <div class="skeleton-img"></div>
-        <div class="skeleton-body">
-          <div class="skeleton-line w60"></div>
-          <div class="skeleton-line w100"></div>
-          <div class="skeleton-line w80"></div>
+    <div v-if="pending" class="container">
+      <div class="skeleton-featured"></div>
+      <div class="grid">
+        <div v-for="i in 6" :key="i" class="skeleton-card">
+          <div class="skeleton-img"></div>
+          <div class="skeleton-body">
+            <div class="skeleton-line w60"></div>
+            <div class="skeleton-line w100"></div>
+            <div class="skeleton-line w80"></div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- 記事一覧 -->
-    <div v-else class="grid">
-      <article v-for="post in posts" :key="post.id" class="card">
-        <NuxtLink :to="`/post/${post.id}`">
-          <div class="card-img-wrap">
-            <img v-if="post.mainImage" :src="post.mainImage" :alt="post.title"
-              class="card-img" loading="lazy" decoding="async">
-            <div v-else class="card-img-placeholder"></div>
+    <div v-else class="container">
+
+      <!-- 注目記事（最新1件を大きく表示） -->
+      <section v-if="posts.length > 0" class="featured">
+        <NuxtLink :to="`/post/${posts[0].id}`" class="featured-link">
+          <div class="featured-img-wrap">
+            <img v-if="posts[0].mainImage" :src="posts[0].mainImage"
+              :alt="posts[0].title" class="featured-img">
+            <div v-else class="featured-img-placeholder"></div>
+            <div class="featured-badge">最新記事</div>
           </div>
-          <div class="card-body">
-            <time class="card-date">{{ fmtDate(post.publishedAt) }}</time>
-            <h2 class="card-title">{{ post.title }}</h2>
-            <div class="card-tags">
-              <span v-for="tag in post.tags" :key="tag" class="tag">#{{ tag }}</span>
+          <div class="featured-body">
+            <time class="featured-date">{{ fmtDate(posts[0].publishedAt) }}</time>
+            <h2 class="featured-title">{{ posts[0].title }}</h2>
+            <div class="featured-tags">
+              <span v-for="tag in posts[0].tags" :key="tag" class="tag">#{{ tag }}</span>
             </div>
+            <span class="featured-read">続きを読む →</span>
           </div>
         </NuxtLink>
-      </article>
+      </section>
+
+      <!-- 記事一覧 -->
+      <h3 class="section-title">すべての記事</h3>
+      <div class="grid">
+        <article v-for="post in posts.slice(1)" :key="post.id" class="card">
+          <NuxtLink :to="`/post/${post.id}`">
+            <div class="card-img-wrap">
+              <img v-if="post.mainImage" :src="post.mainImage" :alt="post.title"
+                class="card-img" loading="lazy" decoding="async">
+              <div v-else class="card-img-placeholder"></div>
+            </div>
+            <div class="card-body">
+              <time class="card-date">{{ fmtDate(post.publishedAt) }}</time>
+              <h2 class="card-title">{{ post.title }}</h2>
+              <div class="card-tags">
+                <span v-for="tag in post.tags" :key="tag" class="tag">#{{ tag }}</span>
+              </div>
+            </div>
+          </NuxtLink>
+        </article>
+      </div>
+
+      <!-- もっと見るボタン -->
+      <div class="load-more-wrap">
+        <button v-if="hasMore" class="load-more-btn"
+          :disabled="loadingMore" @click="loadMore">
+          {{ loadingMore ? "読み込み中..." : "もっと見る" }}
+        </button>
+        <p v-else class="no-more">すべての記事を表示しました</p>
+      </div>
+
     </div>
 
-    <!-- もっと見るボタン -->
-    <div class="load-more-wrap" v-if="!pending">
-      <button v-if="hasMore" class="load-more-btn"
-        :disabled="loadingMore" @click="loadMore">
-        {{ loadingMore ? "読み込み中..." : "もっと見る" }}
-      </button>
-      <p v-else class="no-more">すべての記事を表示しました</p>
-    </div>
+    <!-- フッター -->
+    <footer class="footer">
+      <p>© 2024 だいせん整体 All rights reserved.</p>
+    </footer>
+
   </div>
 </template>
 
@@ -91,14 +139,12 @@ async function fetchPosts(startAfter?: string) {
       limit: PAGE_SIZE + 1
     }
   };
-
   if (startAfter) {
     query.structuredQuery.startAt = {
       values: [{ timestampValue: startAfter }],
       before: false
     };
   }
-
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -156,26 +202,65 @@ useHead({
 </script>
 
 <style scoped>
-.page { max-width: 1100px; margin: auto; padding: 40px 20px; font-family: "Hiragino Sans", sans-serif; background: #F4F1EC; min-height: 100vh; }
-h1 { font-size: 2rem; color: #1F3D23; margin-bottom: 40px; text-align: center; }
+* { box-sizing: border-box; }
+.page { min-height: 100vh; background: #faf7f2; font-family: "Hiragino Sans", sans-serif; }
+
+/* ヘッダー */
+.header { background: #fff; border-bottom: 1px solid #e8e0d5; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+.header-inner { max-width: 1100px; margin: auto; padding: 0 20px; height: 64px; display: flex; align-items: center; justify-content: space-between; }
+.site-title { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: bold; color: #1F3D23; text-decoration: none; }
+.site-icon { font-size: 22px; }
+.nav { display: flex; gap: 24px; }
+.nav-link { color: #555; text-decoration: none; font-size: 14px; font-weight: bold; transition: color 0.2s; }
+.nav-link:hover { color: #355E3B; }
+
+/* コンテナ */
+.container { max-width: 1100px; margin: auto; padding: 40px 20px; }
+
+/* 注目記事 */
+.featured { margin-bottom: 48px; border-radius: 20px; overflow: hidden; background: #fff; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+.featured-link { display: grid; grid-template-columns: 1fr 1fr; text-decoration: none; color: inherit; }
+@media (max-width: 700px) { .featured-link { grid-template-columns: 1fr; } }
+.featured-img-wrap { position: relative; aspect-ratio: 16/9; overflow: hidden; background: #e8e4dc; }
+.featured-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
+.featured-link:hover .featured-img { transform: scale(1.03); }
+.featured-badge { position: absolute; top: 16px; left: 16px; background: #355E3B; color: #fff; font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 20px; }
+.featured-body { padding: 32px; display: flex; flex-direction: column; justify-content: center; gap: 12px; }
+.featured-date { font-size: 13px; color: #888; }
+.featured-title { font-size: 1.4rem; color: #1F3D23; line-height: 1.6; font-weight: bold; }
+.featured-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.featured-read { font-size: 14px; color: #355E3B; font-weight: bold; margin-top: 8px; }
+
+/* セクションタイトル */
+.section-title { font-size: 1.1rem; color: #1F3D23; margin-bottom: 24px; padding-left: 12px; border-left: 4px solid #355E3B; }
+
+/* カード */
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; }
-.card { background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.06); transition: transform 0.2s; }
-.card:hover { transform: translateY(-4px); }
+.card { background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.06); transition: transform 0.2s, box-shadow 0.2s; }
+.card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
 .card a { text-decoration: none; color: inherit; }
 .card-img-wrap { aspect-ratio: 16/9; overflow: hidden; background: #e8e4dc; }
-.card-img { width: 100%; height: 100%; object-fit: cover; }
+.card-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
+.card:hover .card-img { transform: scale(1.03); }
 .card-img-placeholder { width: 100%; height: 100%; background: #e8e4dc; }
 .card-body { padding: 20px; }
 .card-date { font-size: 12px; color: #888; }
-.card-title { font-size: 1.1rem; color: #1F3D23; margin: 8px 0; line-height: 1.5; }
+.card-title { font-size: 1.05rem; color: #1F3D23; margin: 8px 0; line-height: 1.6; font-weight: bold; }
 .card-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-.tag { font-size: 11px; color: #555; border: 1px solid #ccc; border-radius: 20px; padding: 2px 8px; text-decoration: none; }
-.tag:hover { background: #355E3B; color: #fff; border-color: #355E3B; }
+.tag { font-size: 11px; color: #355E3B; background: #e8f0ec; border-radius: 20px; padding: 2px 10px; }
+
+/* もっと見る */
 .load-more-wrap { text-align: center; margin-top: 48px; }
-.load-more-btn { background: #355E3B; color: #fff; border: none; border-radius: 24px; padding: 14px 40px; font-size: 15px; font-weight: bold; cursor: pointer; transition: opacity 0.2s; }
-.load-more-btn:hover { opacity: 0.85; }
-.load-more-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.load-more-btn { background: #355E3B; color: #fff; border: none; border-radius: 24px; padding: 14px 48px; font-size: 15px; font-weight: bold; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(53,94,59,0.3); }
+.load-more-btn:hover { opacity: 0.88; transform: translateY(-2px); }
+.load-more-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 .no-more { color: #888; font-size: 13px; }
+
+/* フッター */
+.footer { text-align: center; padding: 32px 20px; color: #aaa; font-size: 13px; border-top: 1px solid #e8e0d5; margin-top: 40px; background: #fff; }
+
+/* スケルトン */
+.skeleton-featured { height: 300px; border-radius: 20px; margin-bottom: 48px; background: linear-gradient(90deg, #e8e4dc 25%, #f0ece4 50%, #e8e4dc 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
 .skeleton-card { background: #fff; border-radius: 16px; overflow: hidden; }
 .skeleton-img { aspect-ratio: 16/9; background: linear-gradient(90deg, #e8e4dc 25%, #f0ece4 50%, #e8e4dc 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
 .skeleton-body { padding: 20px; }
