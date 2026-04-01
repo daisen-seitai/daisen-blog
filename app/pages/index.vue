@@ -17,28 +17,22 @@
     </header>
 
     <div class="container">
+
       <!-- 読み込み中 -->
       <template v-if="pending">
         <div class="skeleton-featured"></div>
-        <div class="grid">
-          <div v-for="i in 6" :key="i" class="skeleton-card">
-            <div class="skeleton-img"></div>
-            <div class="skeleton-body">
-              <div class="skeleton-line w60"></div>
-              <div class="skeleton-line w100"></div>
-              <div class="skeleton-line w80"></div>
-            </div>
-          </div>
-        </div>
       </template>
 
       <template v-else>
-        <!-- 注目記事 -->
+        <!-- 注目記事（最新1件） -->
         <section v-if="displayPosts.length > 0" class="featured">
           <NuxtLink :to="`/post/${displayPosts[0].id}`" class="featured-link">
             <div class="featured-img-wrap">
-              <img v-if="displayPosts[0].mainImage" :src="displayPosts[0].mainImage"
-                :alt="displayPosts[0].title" class="featured-img">
+              <img v-if="displayPosts[0].mainImage"
+                :src="displayPosts[0].mainImage"
+                :alt="displayPosts[0].title"
+                class="featured-img"
+                fetchpriority="high">
               <div v-else class="featured-img-placeholder"></div>
               <div class="featured-badge">最新記事</div>
             </div>
@@ -53,35 +47,45 @@
           </NuxtLink>
         </section>
 
-        <!-- 記事一覧 -->
-        <h3 class="section-title">すべての記事</h3>
-        <div class="grid">
-          <article v-for="post in displayPosts.slice(1)" :key="post.id" class="card">
-            <NuxtLink :to="`/post/${post.id}`">
-              <div class="card-img-wrap">
-                <img v-if="post.mainImage" :src="post.mainImage" :alt="post.title"
-                  class="card-img" loading="lazy" decoding="async">
-                <div v-else class="card-img-placeholder"></div>
-              </div>
-              <div class="card-body">
-                <time class="card-date">{{ fmtDate(post.publishedAt) }}</time>
-                <h2 class="card-title">{{ post.title }}</h2>
-                <div class="card-tags">
-                  <span v-for="tag in post.tags" :key="tag" class="tag">#{{ tag }}</span>
+        <!-- 記事一覧（もっと見る後に表示） -->
+        <template v-if="showAll">
+          <h3 class="section-title">すべての記事</h3>
+          <div class="grid">
+            <article v-for="post in displayPosts.slice(1)" :key="post.id" class="card">
+              <NuxtLink :to="`/post/${post.id}`">
+                <div class="card-img-wrap">
+                  <img v-if="post.mainImage" :src="post.mainImage" :alt="post.title"
+                    class="card-img" loading="lazy" decoding="async">
+                  <div v-else class="card-img-placeholder"></div>
                 </div>
-              </div>
-            </NuxtLink>
-          </article>
+                <div class="card-body">
+                  <time class="card-date">{{ fmtDate(post.publishedAt) }}</time>
+                  <h2 class="card-title">{{ post.title }}</h2>
+                  <div class="card-tags">
+                    <span v-for="tag in post.tags" :key="tag" class="tag">#{{ tag }}</span>
+                  </div>
+                </div>
+              </NuxtLink>
+            </article>
+          </div>
+
+          <!-- もっと見るボタン -->
+          <div class="load-more-wrap">
+            <button v-if="hasMore" class="load-more-btn"
+              :disabled="loadingMore" @click="loadMore">
+              {{ loadingMore ? "読み込み中..." : "もっと見る" }}
+            </button>
+            <p v-else class="no-more">すべての記事を表示しました</p>
+          </div>
+        </template>
+
+        <!-- 最初のもっと見るボタン -->
+        <div class="load-more-wrap" v-else>
+          <button class="load-more-btn" @click="showAll = true">
+            記事をもっと見る
+          </button>
         </div>
 
-        <!-- もっと見るボタン -->
-        <div class="load-more-wrap">
-          <button v-if="hasMore" class="load-more-btn"
-            :disabled="loadingMore" @click="loadMore">
-            {{ loadingMore ? "読み込み中..." : "もっと見る" }}
-          </button>
-          <p v-else class="no-more">すべての記事を表示しました</p>
-        </div>
       </template>
     </div>
 
@@ -165,6 +169,7 @@ async function fetchPosts(startAfter?: string) {
     });
 }
 
+const showAll = ref(false);
 const hasMore = ref(true);
 const loadingMore = ref(false);
 const lastPublishedAt = ref<string | undefined>(undefined);
@@ -266,10 +271,5 @@ useHead({
 
 /* スケルトン */
 .skeleton-featured { height: 300px; border-radius: 20px; margin-bottom: 48px; background: linear-gradient(90deg, #e8e4dc 25%, #f0ece4 50%, #e8e4dc 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
-.skeleton-card { background: #fff; border-radius: 16px; overflow: hidden; }
-.skeleton-img { aspect-ratio: 16/9; background: linear-gradient(90deg, #e8e4dc 25%, #f0ece4 50%, #e8e4dc 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
-.skeleton-body { padding: 20px; }
-.skeleton-line { height: 14px; border-radius: 4px; margin-bottom: 10px; background: linear-gradient(90deg, #e8e4dc 25%, #f0ece4 50%, #e8e4dc 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
-.w60 { width: 60%; } .w80 { width: 80%; } .w100 { width: 100%; }
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 </style>
