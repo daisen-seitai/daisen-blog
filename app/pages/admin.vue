@@ -106,7 +106,7 @@
 import { collection, getDocs, doc, getDoc, updateDoc, query, orderBy, limit, serverTimestamp } from "firebase/firestore";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "firebase/auth";
-import { db } from "../../plugins/firebase.client";
+import { db } from "../plugins/firebase.client";
 
 const auth = getAuth();
 const storage = getStorage();
