@@ -38,14 +38,27 @@ import { db } from "../../plugins/firebase.client";
 
 const route = useRoute();
 const id = route.params.id as string;
-const post = ref<any>(null);
-const pending = ref(true);
 const error = ref(false);
 
+const { data: post, pending } = await useAsyncData(`post-${id}`, async () => {
+  const snap = await getDoc(doc(db, "blogposts", id));
+  if (!snap.exists()) { error.value = true; return null; }
+  const p = snap.data();
+  return {
+    id: snap.id,
+    title: p.title || "",
+    content: p.content || "",
+    mainImage: p.mainImage || p.mainImageUrl || "",
+    tags: p.tags || [],
+    publishedAt: p.publishedAt?.toDate?.().toISOString() || "",
+  };
+});
+
 function fmtDate(val: any) {
+  if (!val) return "";
   try {
-    const d = val?.toDate ? val.toDate() : new Date(val);
-    if (isNaN(d)) return "";
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return "";
     return d.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
   } catch { return ""; }
 }
@@ -59,24 +72,12 @@ const bodyHtml = computed(() => {
 useHead(() => ({
   title: post.value ? `${post.value.title} | だいせん整体ブログ` : "だいせん整体ブログ",
   meta: [
-    { property: "og:title",       content: post.value?.title || "" },
-    { property: "og:image",       content: post.value?.mainImage || "" },
+    { property: "og:title", content: post.value?.title || "" },
+    { property: "og:image", content: post.value?.mainImage || "" },
     { property: "og:description", content: (post.value?.content || "").replace(/<[^>]+>/g, "").slice(0, 120) },
-    { property: "og:url",         content: `https://blog.daisen-seitai.com/post/${id}` },
+    { property: "og:url", content: `https://blog.daisen-seitai.com/post/${id}` },
   ]
 }));
-
-onMounted(async () => {
-  try {
-    const snap = await getDoc(doc(db, "blogposts", id));
-    if (!snap.exists()) { error.value = true; return; }
-    post.value = { id: snap.id, ...snap.data() };
-  } catch (e) {
-    error.value = true;
-  } finally {
-    pending.value = false;
-  }
-});
 </script>
 
 <style scoped>
