@@ -74,15 +74,56 @@
                 <label>タイトル</label>
                 <input type="text" v-model="form.title" placeholder="記事のタイトル">
               </div>
-              <div class="field" style="flex:1; display:flex; flex-direction:column;">
+              <div class="field">
                 <label>本文</label>
-                <textarea v-model="form.content" style="flex:1;"></textarea>
+                <textarea v-model="form.content" style="min-height:320px; resize:vertical;"></textarea>
               </div>
               <div class="field">
                 <label>タグ（カンマ区切り）</label>
                 <input type="text" v-model="form.tags" placeholder="例: 腰痛, セルフケア">
+                <div class="tag-preview" v-if="form.tags">
+                  <span
+                    v-for="tag in form.tags.split(',').map(t => t.trim()).filter(Boolean)"
+                    :key="tag"
+                    class="tag-chip"
+                  >#{{ tag }}</span>
+                </div>
+              </div>
+
+              <!-- 関連ページ選択（新規追加） -->
+              <div class="field">
+                <label>関連ページ CTA（記事末尾に表示）</label>
+                <select v-model="form.relatedPage" class="select-field">
+                  <option value="">表示しない</option>
+                  <optgroup label="こんな方へ（LP）">
+                    <option value="/morning-pain/">朝、起き上がるのがつらい方へ</option>
+                    <option value="/desk-pain/">座り続けると体がしんどい方へ</option>
+                    <option value="/chronic-fatigue/">疲れが翌日に残る方へ</option>
+                    <option value="/unknown-symptoms/">病院で「異常なし」と言われた方へ</option>
+                    <option value="/postnatal-care/">産後から体が変わった方へ</option>
+                  </optgroup>
+                  <optgroup label="サイト内ページ">
+                    <option value="/about.html">ファシアとは</option>
+                    <option value="/pricing.html">料金案内・初回体験</option>
+                    <option value="/process.html">施術の流れ</option>
+                    <option value="/staff.html">院長紹介</option>
+                    <option value="/access.html">アクセス・営業時間</option>
+                  </optgroup>
+                </select>
+                <!-- CTAプレビュー -->
+                <div class="cta-preview" v-if="form.relatedPage">
+                  <p class="cta-preview-label">▼ 記事末尾に表示されるCTA</p>
+                  <div class="cta-preview-box">
+                    <p class="cta-preview-text">{{ relatedPageLabel }}</p>
+                    <div class="cta-preview-btns">
+                      <span class="cta-preview-btn-primary">詳しく見る →</span>
+                      <span class="cta-preview-btn-line">💬 LINEで相談する</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
+
             <div class="editor-right">
               <div class="field" style="flex:1; display:flex; flex-direction:column;">
                 <label>本文プレビュー</label>
@@ -105,7 +146,7 @@
 <script setup lang="ts">
 import { collection, getDocs, doc, getDoc, updateDoc, query, orderBy, limit, serverTimestamp } from "firebase/firestore";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
-import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "firebase/auth";
+import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut, onAuthStateChanged } from "firebase/auth";
 import { db } from "../plugins/firebase.client";
 
 const auth = getAuth();
@@ -123,7 +164,26 @@ const form = reactive({
   title: "",
   content: "",
   tags: "",
+  relatedPage: "", // 追加
 });
+
+// 関連ページのラベルマップ
+const relatedPageMap: Record<string, string> = {
+  "/morning-pain/": "朝、起き上がるのがつらい方へ",
+  "/desk-pain/": "座り続けると体がしんどい方へ",
+  "/chronic-fatigue/": "疲れが翌日に残る方へ",
+  "/unknown-symptoms/": '病院で「異常なし」と言われた方へ',
+  "/postnatal-care/": "産後から体が変わった方へ",
+  "/about.html": "ファシアとは",
+  "/pricing.html": "料金案内・初回体験",
+  "/process.html": "施術の流れ",
+  "/staff.html": "院長紹介",
+  "/access.html": "アクセス・営業時間",
+};
+
+const relatedPageLabel = computed(() =>
+  relatedPageMap[form.relatedPage] || ""
+);
 
 function setStatus(msg: string, isError = false) {
   statusMsg.value = msg;
@@ -132,6 +192,17 @@ function setStatus(msg: string, isError = false) {
 
 // 認証
 onMounted(() => {
+  // リダイレクトログイン後の結果を処理
+  getRedirectResult(auth).then((result) => {
+    if (result?.user) {
+      setStatus("ログインしました — " + result.user.email);
+    }
+  }).catch((e: any) => {
+    if (e?.code !== 'auth/no-auth-event') {
+      setStatus("ログインエラー: " + e.message, true);
+    }
+  });
+
   onAuthStateChanged(auth, async (u) => {
     user.value = u;
     if (u) {
@@ -145,7 +216,7 @@ onMounted(() => {
 
 async function login() {
   try {
-    await signInWithPopup(auth, new GoogleAuthProvider());
+    await signInWithRedirect(auth, new GoogleAuthProvider());
   } catch (e: any) {
     setStatus("ログインエラー: " + e.message, true);
   }
@@ -168,7 +239,6 @@ async function loadPosts() {
 async function loadPost(id: string) {
   selectedId.value = id;
   sessionStorage.setItem("selectedPostId", id);
-  document.querySelectorAll(".post-item").forEach(el => el.classList.remove("active"));
   setStatus("記事を読み込み中...");
   const snap = await getDoc(doc(db, "blogposts", id));
   if (!snap.exists()) { setStatus("記事が見つかりません", true); return; }
@@ -176,6 +246,7 @@ async function loadPost(id: string) {
   form.title = p.title || "";
   form.content = p.content || "";
   form.tags = (p.tags || []).join(", ");
+  form.relatedPage = p.relatedPage || ""; // 追加
   imagePreviewUrl.value = p.mainImage || p.mainImageUrl || "";
   imageBlob.value = null;
   setStatus(`「${p.title || "無題"}」を編集中`);
@@ -219,6 +290,7 @@ async function saveData(statusToSet?: string) {
     title: form.title,
     content: form.content,
     tags: form.tags.split(",").map((t: string) => t.trim()).filter(Boolean),
+    relatedPage: form.relatedPage || null, // 追加
     updatedAt: serverTimestamp(),
   };
   if (statusToSet) {
@@ -269,7 +341,6 @@ function viewPost() {
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root { --brand: #3d6b5a; --bg: #f5f2ed; --surface: #fdfbf8; --border: #e2ddd6; --danger: #9b2335; --text: #2c2c2c; --muted: #7a7570; }
 
-/* ログイン */
 .login-screen { position: fixed; inset: 0; background: #f5f2ed; display: flex; align-items: center; justify-content: center; }
 .login-card { background: #fdfbf8; border: 1px solid #e2ddd6; border-radius: 16px; padding: 48px; text-align: center; max-width: 360px; width: 100%; }
 .login-card h1 { font-size: 20px; margin-bottom: 8px; color: #1F3D23; }
@@ -277,21 +348,17 @@ function viewPost() {
 .btn-google { display: flex; align-items: center; justify-content: center; gap: 10px; background: #fff; color: #3c4043; border: 1px solid #dadce0; border-radius: 8px; padding: 11px 20px; font-size: 14px; font-weight: bold; cursor: pointer; width: 100%; }
 .btn-google:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
 
-/* ヘッダー */
 .header { background: #fdfbf8; border-bottom: 1px solid #e2ddd6; padding: 0 32px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
 .logo { font-size: 15px; font-weight: bold; color: #3d6b5a; }
 .header-right { display: flex; align-items: center; gap: 12px; }
 .user-email { font-size: 12px; color: #7a7570; }
 
-/* ステータスバー */
 .status-bar { height: 36px; background: #e8f0ec; border-bottom: 1px solid #e2ddd6; display: flex; align-items: center; padding: 0 32px; font-size: 12px; color: #3d6b5a; gap: 8px; }
 .status-bar.error { background: #fce8eb; color: #9b2335; }
 .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
-/* レイアウト */
 .layout { display: grid; grid-template-columns: 280px 1fr; height: calc(100vh - 97px); }
 
-/* サイドバー */
 .sidebar { background: #fdfbf8; border-right: 1px solid #e2ddd6; display: flex; flex-direction: column; overflow: hidden; }
 .sidebar-header { padding: 16px 20px; border-bottom: 1px solid #e2ddd6; display: flex; align-items: center; justify-content: space-between; }
 .sidebar-header h2 { font-size: 12px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; color: #7a7570; }
@@ -306,21 +373,37 @@ function viewPost() {
 .badge-draft { background: #f3f4f6; color: #6b7280; }
 .empty { text-align: center; padding: 40px 20px; color: #7a7570; font-size: 12px; }
 
-/* エディター */
 .editor { display: flex; flex-direction: column; overflow: hidden; }
 .editor-toolbar { padding: 12px 28px; border-bottom: 1px solid #e2ddd6; display: flex; gap: 8px; background: #fdfbf8; flex-wrap: wrap; }
-.editor-body { flex: 1; overflow-y: auto; padding: 28px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.editor-body { flex: 1; overflow-y: auto; padding: 28px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
 .editor-left, .editor-right { display: flex; flex-direction: column; gap: 20px; }
 .field { display: flex; flex-direction: column; gap: 6px; }
 label { font-size: 11px; font-weight: bold; letter-spacing: 0.08em; text-transform: uppercase; color: #7a7570; }
 input[type="text"], textarea { font-size: 14px; padding: 10px 14px; border: 1px solid #e2ddd6; border-radius: 10px; background: #fdfbf8; color: #2c2c2c; width: 100%; }
 input[type="text"]:focus, textarea:focus { outline: none; border-color: #3d6b5a; box-shadow: 0 0 0 3px rgba(61,107,90,0.12); }
-textarea { resize: vertical; min-height: 280px; line-height: 1.8; }
+textarea { resize: vertical; min-height: 200px; line-height: 1.8; }
+
+/* タグプレビュー */
+.tag-preview { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.tag-chip { font-size: 12px; color: #355E3B; border: 1px solid #b8d4be; border-radius: 20px; padding: 2px 10px; background: #edf7ef; }
+
+/* 関連ページ選択 */
+.select-field { font-size: 14px; padding: 10px 14px; border: 1px solid #e2ddd6; border-radius: 10px; background: #fdfbf8; color: #2c2c2c; width: 100%; cursor: pointer; }
+.select-field:focus { outline: none; border-color: #3d6b5a; box-shadow: 0 0 0 3px rgba(61,107,90,0.12); }
+
+/* CTAプレビュー */
+.cta-preview { margin-top: 12px; }
+.cta-preview-label { font-size: 11px; color: #7a7570; margin-bottom: 8px; }
+.cta-preview-box { background: #1F3D23; border-radius: 10px; padding: 20px 24px; }
+.cta-preview-text { font-size: 13px; color: rgba(255,255,255,0.8); margin-bottom: 12px; }
+.cta-preview-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.cta-preview-btn-primary { font-size: 12px; background: #fff; color: #3d6b5a; padding: 7px 16px; border-radius: 6px; font-weight: bold; }
+.cta-preview-btn-line { font-size: 12px; background: #06C755; color: #fff; padding: 7px 16px; border-radius: 6px; font-weight: bold; }
+
 .preview-box { border: 1px solid #e2ddd6; border-radius: 10px; padding: 14px 16px; min-height: 100px; background: #f5f2ed; white-space: pre-wrap; line-height: 1.9; font-size: 13px; color: #4b5563; flex: 1; overflow-y: auto; }
 .img-preview { max-width: 100%; border-radius: 10px; border: 1px solid #e2ddd6; margin-top: 8px; }
 .no-selection { display: flex; align-items: center; justify-content: center; color: #7a7570; font-size: 14px; grid-column: 1 / -1; }
 
-/* ボタン */
 button { font-size: 13px; font-weight: bold; padding: 9px 18px; border: none; border-radius: 10px; cursor: pointer; }
 .btn-primary { background: #3d6b5a; color: #fff; }
 .btn-primary:hover { opacity: 0.88; }
