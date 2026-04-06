@@ -145,8 +145,43 @@ function fmtDate(val: string) {
 
 const bodyHtml = computed(() => {
   const raw = post.value?.content || "";
-  if (raw.includes("<")) return raw;
-  return raw.split(/\n\n+/).map((s: string) => `<p>${s.trim()}</p>`).join("");
+  // すでにHTMLタグが含まれている場合はそのまま返す
+  if (raw.includes("<h2>") || raw.includes("<p>")) return raw;
+
+  let html = raw;
+
+  // ## 見出し2
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  // ### 見出し3
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+
+  // **太字**
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+  // 番号付きリスト（1. 2. 3.）
+  html = html.replace(/^(\d+)\.\s+(.+)$/gm, '<li>$2</li>');
+  html = html.replace(/(<li>.*<\/li>\n?)+/g, (match) => `<ol>${match}</ol>`);
+
+  // 箇条書き（・ or - or *）
+  html = html.replace(/^[・\-\*]\s+(.+)$/gm, '<li>$1</li>');
+  html = html.replace(/(<li>.*<\/li>\n?)+/g, (match) => {
+    if (match.includes('<ol>')) return match;
+    return `<ul>${match}</ul>`;
+  });
+
+  // 空行で段落分割
+  const blocks = html.split(/\n{2,}/);
+  html = blocks.map((block: string) => {
+    block = block.trim();
+    if (!block) return '';
+    // すでにブロック要素の場合はそのまま
+    if (/^<(h[1-6]|ul|ol|li|blockquote)/.test(block)) return block;
+    // 単一改行を<br>に変換して<p>で囲む
+    const inner = block.replace(/\n/g, '<br>');
+    return `<p>${inner}</p>`;
+  }).join('\n');
+
+  return html;
 });
 
 useHead(() => ({
