@@ -146,7 +146,7 @@
 <script setup lang="ts">
 import { collection, getDocs, doc, getDoc, updateDoc, query, orderBy, limit, serverTimestamp } from "firebase/firestore";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
-import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut, onAuthStateChanged } from "firebase/auth";
+import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "firebase/auth";
 import { db } from "../plugins/firebase.client";
 
 const auth = getAuth();
@@ -192,17 +192,6 @@ function setStatus(msg: string, isError = false) {
 
 // 認証
 onMounted(() => {
-  // リダイレクトログイン後の結果を処理
-  getRedirectResult(auth).then((result) => {
-    if (result?.user) {
-      setStatus("ログインしました — " + result.user.email);
-    }
-  }).catch((e: any) => {
-    if (e?.code !== 'auth/no-auth-event') {
-      setStatus("ログインエラー: " + e.message, true);
-    }
-  });
-
   onAuthStateChanged(auth, async (u) => {
     user.value = u;
     if (u) {
@@ -216,7 +205,7 @@ onMounted(() => {
 
 async function login() {
   try {
-    await signInWithRedirect(auth, new GoogleAuthProvider());
+    await signInWithPopup(auth, new GoogleAuthProvider());
   } catch (e: any) {
     setStatus("ログインエラー: " + e.message, true);
   }
