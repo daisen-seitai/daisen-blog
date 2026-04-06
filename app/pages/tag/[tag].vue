@@ -191,7 +191,7 @@ const { data: posts, pending } = await useAsyncData(`tag-${tag}`, async () => {
 .site-title { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: bold; color: #1F3D23; text-decoration: none; }
 .site-icon { font-size: 22px; }
 .nav { display: flex; gap: 24px; }
-.nav-link { color: #555; text-decoration: none; font-size: 14px; font-weight: bold; transition: color 0.2s; }
+.nav-link { color: #444; text-decoration: none; font-size: 14px; font-weight: bold; transition: color 0.2s; }
 .nav-link:hover { color: #355E3B; }
 
 /* コンテナ */
@@ -200,16 +200,16 @@ const { data: posts, pending } = await useAsyncData(`tag-${tag}`, async () => {
 /* タグフィルタバナー */
 .filter-banner { background: #e8f0ec; border: 1px solid #b8d4be; border-radius: 12px; padding: 14px 20px; margin-bottom: 32px; }
 .filter-banner-inner { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.filter-banner-label { font-size: 13px; color: #555; }
+.filter-banner-label { font-size: 13px; color: #444; }
 .filter-tag { font-size: 14px; font-weight: bold; color: #1F3D23; background: #c8e0cc; padding: 3px 12px; border-radius: 20px; }
-.filter-clear { font-size: 13px; color: #888; text-decoration: none; margin-left: auto; transition: color 0.2s; }
-.filter-clear:hover { color: #333; }
+.filter-clear { font-size: 13px; color: #666; text-decoration: none; margin-left: auto; transition: color 0.2s; }
+.filter-clear:hover { color: #222; }
 
 /* セクションタイトル */
 .section-title { font-size: 1.1rem; color: #1F3D23; margin-bottom: 24px; padding-left: 12px; border-left: 4px solid #355E3B; }
 
 /* 記事なし */
-.no-result { text-align: center; padding: 64px 20px; color: #888; }
+.no-result { text-align: center; padding: 64px 20px; color: #666; }
 .no-result p { font-size: 16px; margin-bottom: 24px; }
 .btn-back-list { display: inline-block; background: #355E3B; color: #fff; padding: 12px 28px; border-radius: 24px; text-decoration: none; font-size: 14px; font-weight: bold; }
 
@@ -223,7 +223,7 @@ const { data: posts, pending } = await useAsyncData(`tag-${tag}`, async () => {
 .card:hover .card-img { transform: scale(1.03); }
 .card-img-placeholder { width: 100%; height: 100%; background: #e8e4dc; }
 .card-body { padding: 20px; }
-.card-date { font-size: 12px; color: #888; }
+.card-date { font-size: 12px; color: #666; }
 .card-title { font-size: 1.05rem; color: #1F3D23; margin: 8px 0; line-height: 1.6; font-weight: bold; }
 .card-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 

@@ -196,20 +196,20 @@ useHead(() => ({
 </script>
 
 <style scoped>
-.page { max-width: 900px; margin: auto; padding: 24px 20px 60px; font-family: "Hiragino Sans", sans-serif; color: #333; }
+.page { max-width: 900px; margin: auto; padding: 24px 20px 60px; font-family: "Hiragino Sans", sans-serif; color: #222; }
 .back { display: inline-block; margin-bottom: 24px; color: #355E3B; text-decoration: none; font-size: 14px; font-weight: bold; }
 .back:hover { opacity: 0.75; }
 h1 { font-size: clamp(1.4rem, 4vw, 1.9rem); color: #1F3D23; line-height: 1.5; margin-bottom: 12px; }
-.meta { color: #666; font-size: 13px; margin-bottom: 8px; }
+.meta { color: #444; font-size: 13px; margin-bottom: 8px; }
 
 /* タグ：クリック可能なリンク */
 .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 24px; }
-.tag { font-size: 12px; color: #555; border: 1px solid #ccc; border-radius: 20px; padding: 2px 10px; text-decoration: none; transition: all 0.2s; cursor: pointer; }
+.tag { font-size: 12px; color: #444; border: 1px solid #ccc; border-radius: 20px; padding: 2px 10px; text-decoration: none; transition: all 0.2s; cursor: pointer; }
 .tag:hover { background: #355E3B; color: #fff; border-color: #355E3B; }
 
 .post-img-wrap { margin: 0 0 32px; border-radius: 12px; overflow: hidden; aspect-ratio: 1200/630; background: #e8e4dc; }
 .post-img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.body { font-size: 16px; line-height: 2; margin-bottom: 48px; }
+.body { font-size: 16px; line-height: 2; margin-bottom: 48px; color: #222; font-weight: 400; }
 .body :deep(h2) { font-size: 1.3rem; color: #1F3D23; margin: 2em 0 0.8em; padding-left: 12px; border-left: 4px solid #355E3B; }
 .body :deep(h3) { font-size: 1.1rem; color: #1F3D23; margin: 1.6em 0 0.6em; }
 .body :deep(p)  { margin-bottom: 1.4em; }
