@@ -289,7 +289,7 @@ useHead({
 .site-title { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: bold; color: #1F3D23; text-decoration: none; }
 .site-icon { font-size: 22px; }
 .nav { display: flex; gap: 24px; }
-.nav-link { color: #555; text-decoration: none; font-size: 14px; font-weight: bold; transition: color 0.2s; }
+.nav-link { color: #444; text-decoration: none; font-size: 14px; font-weight: bold; transition: color 0.2s; }
 .nav-link:hover { color: #355E3B; }
 
 /* タグフィルタバナー */
@@ -301,7 +301,7 @@ useHead({
   margin-bottom: 32px;
 }
 .filter-banner-inner { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.filter-banner-label { font-size: 13px; color: #555; }
+.filter-banner-label { font-size: 13px; color: #444; }
 .filter-tag {
   font-size: 14px;
   font-weight: bold;
@@ -312,18 +312,18 @@ useHead({
 }
 .filter-clear {
   font-size: 13px;
-  color: #888;
+  color: #666;
   text-decoration: none;
   margin-left: auto;
   transition: color 0.2s;
 }
-.filter-clear:hover { color: #333; }
+.filter-clear:hover { color: #222; }
 
 /* フィルタ結果なし */
 .no-result {
   text-align: center;
   padding: 64px 20px;
-  color: #888;
+  color: #666;
 }
 .no-result p { font-size: 16px; margin-bottom: 24px; }
 .btn-back-list {
@@ -350,7 +350,7 @@ useHead({
 .featured-img-placeholder { width: 100%; height: 100%; background: #e8e4dc; }
 .featured-badge { position: absolute; top: 16px; left: 16px; background: #355E3B; color: #fff; font-size: 12px; font-weight: bold; padding: 4px 12px; border-radius: 20px; }
 .featured-body { padding: 32px; display: flex; flex-direction: column; justify-content: center; gap: 12px; }
-.featured-date { font-size: 13px; color: #888; }
+.featured-date { font-size: 13px; color: #666; }
 .featured-title { font-size: 1.4rem; color: #1F3D23; line-height: 1.6; font-weight: bold; }
 .featured-tags { display: flex; flex-wrap: wrap; gap: 6px; }
 .featured-read { font-size: 14px; color: #355E3B; font-weight: bold; margin-top: 8px; }
@@ -368,7 +368,7 @@ useHead({
 .card:hover .card-img { transform: scale(1.03); }
 .card-img-placeholder { width: 100%; height: 100%; background: #e8e4dc; }
 .card-body { padding: 20px; }
-.card-date { font-size: 12px; color: #888; }
+.card-date { font-size: 12px; color: #666; }
 .card-title { font-size: 1.05rem; color: #1F3D23; margin: 8px 0; line-height: 1.6; font-weight: bold; }
 .card-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 
@@ -387,7 +387,7 @@ useHead({
 .load-more-btn { background: #355E3B; color: #fff; border: none; border-radius: 24px; padding: 14px 48px; font-size: 15px; font-weight: bold; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(53,94,59,0.3); }
 .load-more-btn:hover { opacity: 0.88; transform: translateY(-2px); }
 .load-more-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-.no-more { color: #888; font-size: 13px; }
+.no-more { color: #666; font-size: 13px; }
 
 /* フッター */
 .footer { text-align: center; padding: 32px 20px; color: #aaa; font-size: 13px; border-top: 1px solid #e8e0d5; margin-top: 40px; background: #fff; }
