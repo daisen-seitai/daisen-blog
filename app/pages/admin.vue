@@ -61,13 +61,16 @@
 
         <!-- エディター -->
         <main class="editor">
+          <!-- ツールバー（1本のみ） -->
           <div class="editor-toolbar">
             <button class="btn-primary" @click="publish">公開する</button>
             <button class="btn-ghost" @click="save">下書き保存</button>
             <button class="btn-ghost" @click="viewPost">表示確認 ↗</button>
+            <button class="btn-sns" @click="openSnsModal">📲 SNS・短縮URL生成</button>
             <button class="btn-danger" @click="unpublish">非公開に戻す</button>
           </div>
 
+          <!-- エディター本体 -->
           <div class="editor-body" v-if="selectedId">
             <div class="editor-left">
               <div class="field">
@@ -90,7 +93,7 @@
                 </div>
               </div>
 
-              <!-- 関連ページ選択（新規追加） -->
+              <!-- 関連ページ選択 -->
               <div class="field">
                 <label>関連ページ CTA（記事末尾に表示）</label>
                 <select v-model="form.relatedPage" class="select-field">
@@ -136,9 +139,51 @@
               </div>
             </div>
           </div>
+
           <div v-else class="no-selection">← 左の一覧から記事を選択してください</div>
         </main>
       </div>
+
+      <!-- SNSモーダル（adminルート直下・layoutの外） -->
+      <div v-if="showSnsModal" class="modal-overlay" @click.self="showSnsModal = false">
+        <div class="modal-card">
+          <div class="modal-header">
+            <h3>SNS・集客用コンテンツ生成</h3>
+            <button class="btn-close" @click="showSnsModal = false">×</button>
+          </div>
+          <div class="modal-body">
+            <div class="sns-field">
+              <label>短縮URL（SNS用）</label>
+              <div class="url-input-group">
+                <input type="text" :value="shortUrl" readonly>
+                <button class="btn-ghost" @click="copyToClipboard(shortUrl)">コピー</button>
+              </div>
+            </div>
+
+            <hr class="divider">
+
+            <div class="sns-tabs">
+              <button
+                v-for="t in ['Instagram', 'X (Twitter)', 'GBP (Google)']"
+                :key="t"
+                :class="{ active: activeSnsTab === t }"
+                @click="activeSnsTab = t"
+              >
+                {{ t }}
+              </button>
+            </div>
+
+            <div class="sns-content-area">
+              <textarea v-model="snsPosts[activeSnsTab]" rows="8"></textarea>
+              <div class="sns-footer">
+                <span>文字数: {{ snsPosts[activeSnsTab].length }}文字</span>
+                <button class="btn-primary" @click="copyToClipboard(snsPosts[activeSnsTab])">この投稿文をコピー</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </template>
@@ -164,7 +209,17 @@ const form = reactive({
   title: "",
   content: "",
   tags: "",
-  relatedPage: "", // 追加
+  relatedPage: "",
+});
+
+// SNS関連
+const showSnsModal = ref(false);
+const activeSnsTab = ref("Instagram");
+const shortUrl = ref("");
+const snsPosts = reactive<Record<string, string>>({
+  "Instagram": "",
+  "X (Twitter)": "",
+  "GBP (Google)": "",
 });
 
 // 関連ページのラベルマップ
@@ -181,9 +236,7 @@ const relatedPageMap: Record<string, string> = {
   "/access.html": "アクセス・営業時間",
 };
 
-const relatedPageLabel = computed(() =>
-  relatedPageMap[form.relatedPage] || ""
-);
+const relatedPageLabel = computed(() => relatedPageMap[form.relatedPage] || "");
 
 function setStatus(msg: string, isError = false) {
   statusMsg.value = msg;
@@ -235,7 +288,7 @@ async function loadPost(id: string) {
   form.title = p.title || "";
   form.content = p.content || "";
   form.tags = (p.tags || []).join(", ");
-  form.relatedPage = p.relatedPage || ""; // 追加
+  form.relatedPage = p.relatedPage || "";
   imagePreviewUrl.value = p.mainImage || p.mainImageUrl || "";
   imageBlob.value = null;
   setStatus(`「${p.title || "無題"}」を編集中`);
@@ -279,7 +332,7 @@ async function saveData(statusToSet?: string) {
     title: form.title,
     content: form.content,
     tags: form.tags.split(",").map((t: string) => t.trim()).filter(Boolean),
-    relatedPage: form.relatedPage || null, // 追加
+    relatedPage: form.relatedPage || null,
     updatedAt: serverTimestamp(),
   };
   if (statusToSet) {
@@ -304,11 +357,8 @@ async function save() {
 
 async function publish() {
   if (!selectedId.value) { setStatus("記事を選択してください", true); return; }
-  try {
-    await saveData("published");
-    setStatus("公開しました ✓");
-    await loadPosts();
-  } catch (e: any) { setStatus("公開エラー: " + e.message, true); }
+  try { await saveData("published"); setStatus("公開しました ✓"); await loadPosts(); }
+  catch (e: any) { setStatus("公開エラー: " + e.message, true); }
 }
 
 async function unpublish() {
@@ -324,11 +374,38 @@ function viewPost() {
   if (!selectedId.value) { setStatus("記事を選択してください", true); return; }
   window.open(`/post/${selectedId.value}`, "_blank");
 }
+
+// SNSモーダル
+function openSnsModal() {
+  if (!selectedId.value) { setStatus("記事を選択してください", true); return; }
+
+  shortUrl.value = `https://blog.daisen-seitai.com/post/${selectedId.value}`;
+
+  const tagList = form.tags.split(",").map(t => t.trim()).filter(Boolean);
+  const hashTags = tagList.map(t => `#${t}`).join(" ");
+  const commonTags = "#だいせん整体 #鳥取整体 #大山 #ファシア";
+  const summary = form.content.substring(0, 100).replace(/\n/g, " ") + "...";
+
+  snsPosts["Instagram"] =
+    `【新着ブログ更新✨】\n\n${form.title}\n\n${summary}\n\n続きはプロフィールのリンク、またはこちらから👇\n${shortUrl.value}\n\n${hashTags}\n${commonTags}`;
+
+  snsPosts["X (Twitter)"] =
+    `だいせん整体ブログを更新しました！\n\n「${form.title}」\n\n${summary}\n\n詳しくはこちらからチェックしてください👇\n${shortUrl.value}\n\n${hashTags}`;
+
+  snsPosts["GBP (Google)"] =
+    `【ブログ公開のお知らせ】\n\nこんにちは、だいせん整体です。\n新しい記事「${form.title}」を公開しました。\n\n${form.content.substring(0, 150)}...\n\n詳細は公式HPのブログをご覧ください。\n皆様のご来院を心よりお待ちしております。\n\n記事を読む：${shortUrl.value}`;
+
+  showSnsModal.value = true;
+}
+
+function copyToClipboard(text: string) {
+  navigator.clipboard.writeText(text);
+  setStatus("クリップボードにコピーしました！");
+}
 </script>
 
 <style scoped>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-:root { --brand: #3d6b5a; --bg: #f5f2ed; --surface: #fdfbf8; --border: #e2ddd6; --danger: #9b2335; --text: #2c2c2c; --muted: #7a7570; }
 
 .login-screen { position: fixed; inset: 0; background: #f5f2ed; display: flex; align-items: center; justify-content: center; }
 .login-card { background: #fdfbf8; border: 1px solid #e2ddd6; border-radius: 16px; padding: 48px; text-align: center; max-width: 360px; width: 100%; }
@@ -363,7 +440,7 @@ function viewPost() {
 .empty { text-align: center; padding: 40px 20px; color: #7a7570; font-size: 12px; }
 
 .editor { display: flex; flex-direction: column; overflow: hidden; }
-.editor-toolbar { padding: 12px 28px; border-bottom: 1px solid #e2ddd6; display: flex; gap: 8px; background: #fdfbf8; flex-wrap: wrap; }
+.editor-toolbar { padding: 12px 28px; border-bottom: 1px solid #e2ddd6; display: flex; gap: 8px; background: #fdfbf8; flex-wrap: wrap; align-items: center; }
 .editor-body { flex: 1; overflow-y: auto; padding: 28px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
 .editor-left, .editor-right { display: flex; flex-direction: column; gap: 20px; }
 .field { display: flex; flex-direction: column; gap: 6px; }
@@ -372,15 +449,12 @@ input[type="text"], textarea { font-size: 14px; padding: 10px 14px; border: 1px 
 input[type="text"]:focus, textarea:focus { outline: none; border-color: #3d6b5a; box-shadow: 0 0 0 3px rgba(61,107,90,0.12); }
 textarea { resize: vertical; min-height: 200px; line-height: 1.8; }
 
-/* タグプレビュー */
 .tag-preview { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .tag-chip { font-size: 12px; color: #355E3B; border: 1px solid #b8d4be; border-radius: 20px; padding: 2px 10px; background: #edf7ef; }
 
-/* 関連ページ選択 */
 .select-field { font-size: 14px; padding: 10px 14px; border: 1px solid #e2ddd6; border-radius: 10px; background: #fdfbf8; color: #2c2c2c; width: 100%; cursor: pointer; }
 .select-field:focus { outline: none; border-color: #3d6b5a; box-shadow: 0 0 0 3px rgba(61,107,90,0.12); }
 
-/* CTAプレビュー */
 .cta-preview { margin-top: 12px; }
 .cta-preview-label { font-size: 11px; color: #7a7570; margin-bottom: 8px; }
 .cta-preview-box { background: #1F3D23; border-radius: 10px; padding: 20px 24px; }
@@ -391,7 +465,7 @@ textarea { resize: vertical; min-height: 200px; line-height: 1.8; }
 
 .preview-box { border: 1px solid #e2ddd6; border-radius: 10px; padding: 14px 16px; min-height: 100px; background: #f5f2ed; white-space: pre-wrap; line-height: 1.9; font-size: 13px; color: #4b5563; flex: 1; overflow-y: auto; }
 .img-preview { max-width: 100%; border-radius: 10px; border: 1px solid #e2ddd6; margin-top: 8px; }
-.no-selection { display: flex; align-items: center; justify-content: center; color: #7a7570; font-size: 14px; grid-column: 1 / -1; }
+.no-selection { flex: 1; display: flex; align-items: center; justify-content: center; color: #7a7570; font-size: 14px; }
 
 button { font-size: 13px; font-weight: bold; padding: 9px 18px; border: none; border-radius: 10px; cursor: pointer; }
 .btn-primary { background: #3d6b5a; color: #fff; }
@@ -399,5 +473,24 @@ button { font-size: 13px; font-weight: bold; padding: 9px 18px; border: none; bo
 .btn-ghost { background: #fdfbf8; color: #2c2c2c; border: 1px solid #e2ddd6; }
 .btn-ghost:hover { background: #f5f2ed; }
 .btn-danger { background: #9b2335; color: #fff; margin-left: auto; }
+.btn-sns { background: #4a6fa5; color: #fff; }
+.btn-sns:hover { background: #3b5984; }
 .btn-icon { background: none; border: none; padding: 6px 8px; color: #7a7570; font-size: 16px; border-radius: 6px; cursor: pointer; }
+
+/* モーダル */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
+.modal-card { background: #fdfbf8; width: 90%; max-width: 600px; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); overflow: hidden; }
+.modal-header { padding: 20px; border-bottom: 1px solid #e2ddd6; display: flex; justify-content: space-between; align-items: center; }
+.modal-header h3 { font-size: 16px; color: #3d6b5a; }
+.btn-close { background: none; border: none; font-size: 24px; cursor: pointer; color: #7a7570; padding: 0; }
+.modal-body { padding: 24px; }
+.sns-field { display: flex; flex-direction: column; gap: 6px; }
+.url-input-group { display: flex; gap: 8px; margin-top: 4px; }
+.url-input-group input { flex: 1; background: #f5f2ed; }
+.divider { border: none; border-top: 1px solid #e2ddd6; margin: 24px 0; }
+.sns-tabs { display: flex; gap: 4px; margin-bottom: 0; }
+.sns-tabs button { flex: 1; padding: 10px; background: #f0ede8; border-radius: 8px 8px 0 0; font-size: 12px; color: #2c2c2c; border: 1px solid #e2ddd6; border-bottom: none; }
+.sns-tabs button.active { background: #3d6b5a; color: #fff; border-color: #3d6b5a; }
+.sns-content-area textarea { width: 100%; border-radius: 0 0 8px 8px; padding: 16px; font-size: 14px; line-height: 1.6; border: 1px solid #e2ddd6; border-top: none; }
+.sns-footer { margin-top: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #7a7570; }
 </style>
